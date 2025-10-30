@@ -6,12 +6,12 @@ images:
     digest: ~
     pullPolicy: IfNotPresent
 
-# Use LocalExecutor instead of CeleryExecutor (no Redis/Workers needed)
+# Use KubernetesExecutor (no Redis/Workers needed, creates pods per task)
 executor: "KubernetesExecutor"
 
 dags:
   gitSync:
-    enabled: false
+    enabled: true
 
     # git repo clone url
     # ssh example: git@github.com:apache/airflow.git
@@ -34,9 +34,9 @@ dags:
 workers:
   replicas: 0
 
-# Disable Redis (not needed for LocalExecutor)
+# Disable Redis (not needed for KubernetesExecutor)
 redis:
-  enabled: true
+  enabled: false
 
 # Use standard PostgreSQL image instead of bitnami
 postgresql:

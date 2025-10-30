@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.venv
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Kubernetes Secrets - DO NOT COMMIT
+k8s/secrets/git-secrets.yaml
+k8s/secrets/*-secrets.yaml
+*.secret.yaml
+
+# Certificates - DO NOT COMMIT
+*.pem
+*.key
+*.crt
+*.cer
+cicd/ns_ca_bundle.pem
+
+# Helm
+chart/values-example.yaml
+
+# Airflow
+airflow.cfg
+airflow.db
+logs/
+*.log
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+.cache/
