@@ -47,16 +47,38 @@ from produce_data_assets import posts_asset, users_asset
 # ========================================
 # EXAMPLE 1: With Assets (Current)
 # ========================================
-with DAG(
+dag_asset_triggered = DAG(
     dag_id="trigger_databricks_workflow_dag",
-    schedule=(posts_asset & users_asset)  # Runs when BOTH assets ready
-):
-    run_databricks_workflow = DatabricksRunNowOperator(
-        task_id="run_databricks_workflow",
-        databricks_conn_id="databricks_conn",
-        job_id="1054308664529427"
-    )
+    description="Run when both posts and users assets are ready",
+    schedule=(posts_asset & users_asset),  # Runs when BOTH assets update
+    start_date=days_ago(1),
+    catchup=False,
+)
 
+run_databricks_workflow = DatabricksRunNowOperator(
+    task_id="run_databricks_workflow",
+    databricks_conn_id="databricks_conn",
+    job_id=1054308664529427,  # Example Databricks job
+    dag=dag_asset_triggered,
+)
+
+
+# Scheduled Every Sunday at 9 AM
+
+dag_weekly = DAG(
+    dag_id="Talent Experience Tagging Incremental Loading",
+    description="Run Databricks job every Sunday at 9 AM",
+    schedule_interval="0 9 * * 0",  # Sunday 09:00 (0=Sunday)
+    start_date=days_ago(1),
+    catchup=False,
+)
+
+job_bronze = DatabricksRunNowOperator(
+    task_id="Talent_experience_tagging",
+    databricks_conn_id="databricks_conn",
+    job_id=695583825615209, 
+    dag=dag_weekly,
+)
 
 # ========================================
 # EXAMPLE 2: Multiple Jobs - Sequential
