@@ -1,7 +1,7 @@
 images:
   airflow:
     repository: my-dags
-    tag: ~
+    tag: $(date +%Y%m%d)
     # Specifying digest takes precedence over tag.
     digest: ~
     pullPolicy: IfNotPresent
@@ -30,6 +30,10 @@ dags:
     # if your repo needs a user name password
     # you can load them to a k8s secret like the one below
     credentialsSecret: git-credentials
+    # Disable SSL verification for Kind (development only)
+    env:
+      - name: GIT_SSL_NO_VERIFY
+        value: "true"
 # Disable workers for LocalExecutor
 workers:
   replicas: 0

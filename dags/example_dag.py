@@ -20,5 +20,4 @@ with DAG(
         time.sleep(5)
         print("Goodbye, world from Airflow!")
 
-    hello_world()
-    goodbye_world()
+    hello_world() >> goodbye_world()
