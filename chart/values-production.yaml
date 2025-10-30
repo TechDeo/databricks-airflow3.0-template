@@ -1,0 +1,77 @@
+# Production values for Airflow
+# Use this when deploying to real Kubernetes clusters (EKS, GKE, AKS)
+
+images:
+  airflow:
+    repository: my-dags
+    tag: "REPLACE_WITH_IMAGE_TAG"  # Set via CI/CD
+    pullPolicy: IfNotPresent
+
+# Use KubernetesExecutor (no Redis/Workers needed, creates pods per task)
+executor: "KubernetesExecutor"
+
+dags:
+  gitSync:
+    enabled: true
+    repo: https://github.com/TechDeo/databricks-airflow3.0-template.git
+    branch: main
+    rev: HEAD
+    ref: main
+    depth: 1
+    maxFailures: 0
+    subPath: "dags"
+    credentialsSecret: git-credentials
+    # NOTE: No GIT_SSL_NO_VERIFY here!
+    # Production clusters have proper CA certificates
+
+# Disable workers for KubernetesExecutor
+workers:
+  replicas: 0
+
+# Disable Redis (not needed for KubernetesExecutor)
+redis:
+  enabled: false
+
+# Use managed PostgreSQL in production
+postgresql:
+  enabled: false  # Use RDS/Cloud SQL instead
+
+# Configure external database connection
+data:
+  metadataSecretName: airflow-metadata  # Create this secret with your RDS credentials
+
+# Set static webserver secret key (REQUIRED for production)
+webserverSecretKey: "CHANGE_THIS_TO_RANDOM_32_CHAR_STRING"
+
+# Resource limits (adjust based on workload)
+scheduler:
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+
+dagProcessor:
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+# Enable log persistence
+logs:
+  persistence:
+    enabled: true
+    storageClassName: "gp3"  # AWS example, adjust for your cloud
+    size: 10Gi
+
+# Or use remote logging (recommended)
+config:
+  logging:
+    remote_logging: true
+    remote_base_log_folder: "s3://my-bucket/airflow-logs"  # Adjust for your cloud
+    remote_log_conn_id: "aws_default"
