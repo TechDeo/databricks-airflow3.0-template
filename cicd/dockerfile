@@ -1,0 +1,21 @@
+FROM apache/airflow:3.0.2-python3.11
+
+# Copy company CA certificate for SSL verification
+COPY cicd/ns_ca_bundle.pem /usr/local/share/ca-certificates/ns_ca_bundle.crt
+
+# Update CA certificates
+USER root
+RUN update-ca-certificates
+
+# Set environment variables for Python SSL verification
+ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+ENV SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+# Switch back to airflow user
+USER airflow
+
+COPY ./dags/ /opt/airflow/dags/
+
+COPY ./requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt

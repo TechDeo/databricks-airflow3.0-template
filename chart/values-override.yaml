@@ -1,0 +1,52 @@
+images:
+  airflow:
+    repository: my-dags
+    tag: ~
+    # Specifying digest takes precedence over tag.
+    digest: ~
+    pullPolicy: IfNotPresent
+
+# Use LocalExecutor instead of CeleryExecutor (no Redis/Workers needed)
+executor: "KubernetesExecutor"
+
+dags:
+  gitSync:
+    enabled: false
+
+    # git repo clone url
+    # ssh example: git@github.com:apache/airflow.git
+    # https example: https://github.com/apache/airflow.git
+    repo: https://github.com/TechDeo/databricks-airflow3.0-template.git
+    branch: main
+    rev: HEAD
+    # The git revision (branch, tag, or hash) to check out, v4 only
+    ref: main
+    depth: 1
+    # the number of consecutive failures allowed before aborting
+    maxFailures: 0
+    # subpath within the repo where dags are located
+    # should be "" if dags are at repo root
+    subPath: "dags"
+    # if your repo needs a user name password
+    # you can load them to a k8s secret like the one below
+    credentialsSecret: git-credentials
+# Disable workers for LocalExecutor
+workers:
+  replicas: 0
+
+# Disable Redis (not needed for LocalExecutor)
+redis:
+  enabled: true
+
+# Use standard PostgreSQL image instead of bitnami
+postgresql:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: postgres
+    tag: "16-alpine"
+  auth:
+    enablePostgresUser: true
+    postgresPassword: postgres
+    username: ""
+    password: ""
