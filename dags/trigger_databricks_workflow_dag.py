@@ -69,7 +69,7 @@ run_databricks_workflow = DatabricksRunNowOperator(
 dag_weekly = DAG(
     dag_id="Talent_Experience_Tagging_Incremental_Loading",
     description="Run Databricks job every Sunday at 9 AM",
-    schedule_interval="0 9 * * 0",  # Sunday 09:00 (0=Sunday)
+    schedule="0 9 * * 0",  # Sunday 09:00 (0=Sunday)
     start_date=datetime(2025, 1, 1),
     catchup=False,
 )
