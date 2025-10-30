@@ -41,6 +41,7 @@ E. COMPLEX:
 
 from airflow.sdk import DAG
 from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
+from airflow.utils.dates import days_ago
 from produce_data_assets import posts_asset, users_asset
 
 
@@ -76,7 +77,7 @@ dag_weekly = DAG(
 job_bronze = DatabricksRunNowOperator(
     task_id="Talent_experience_tagging",
     databricks_conn_id="databricks_conn",
-    job_id=695583825615209, 
+    job_id=695583825615209,
     dag=dag_weekly,
 )
 
