@@ -39,9 +39,9 @@ E. COMPLEX:
    job_1 >> [job_2, job_3] >> job_4
 """
 
+from datetime import datetime, timedelta
 from airflow.sdk import DAG
 from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
-from airflow.utils.dates import days_ago
 from produce_data_assets import posts_asset, users_asset
 
 
@@ -52,7 +52,7 @@ dag_asset_triggered = DAG(
     dag_id="trigger_databricks_workflow_dag",
     description="Run when both posts and users assets are ready",
     schedule=(posts_asset & users_asset),  # Runs when BOTH assets update
-    start_date=days_ago(1),
+    start_date=datetime(2025, 1, 1),
     catchup=False,
 )
 
@@ -67,10 +67,10 @@ run_databricks_workflow = DatabricksRunNowOperator(
 # Scheduled Every Sunday at 9 AM
 
 dag_weekly = DAG(
-    dag_id="Talent Experience Tagging Incremental Loading",
+    dag_id="Talent_Experience_Tagging_Incremental_Loading",
     description="Run Databricks job every Sunday at 9 AM",
     schedule_interval="0 9 * * 0",  # Sunday 09:00 (0=Sunday)
-    start_date=days_ago(1),
+    start_date=datetime(2025, 1, 1),
     catchup=False,
 )
 
