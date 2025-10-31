@@ -1,5 +1,6 @@
 FROM apache/airflow:3.0.2-python3.11
 
+# # copy company CA certificate for SSL verification
 # Copy company CA certificate for SSL verification
 # COPY cicd/ns_ca_bundle.pem /usr/local/share/ca-certificates/ns_ca_bundle.crt
 
