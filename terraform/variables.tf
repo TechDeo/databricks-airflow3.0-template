@@ -1,95 +1,41 @@
 # AWS Region
 variable "aws_region" {
-  description = "AWS region to deploy resources"
-  type        = string
+  description = "AWS region"
   default     = "us-east-1"
 }
 
-# Project name (used for naming resources)
-variable "project_name" {
-  description = "Project name used for resource naming"
+# Your IP address (for SSH and Airflow UI access)
+variable "my_ip" {
+  description = "Your IP address in CIDR format (e.g., 203.0.113.45/32)"
   type        = string
-  default     = "airflow"
 }
 
-# Environment (dev, staging, prod)
-variable "environment" {
-  description = "Environment name"
+# SSH Key Name (must already exist in AWS)
+variable "key_name" {
+  description = "Name of your SSH key pair in AWS"
   type        = string
-  default     = "dev"
 }
 
-# EC2 Instance Configuration
+# EC2 Instance Type
 variable "instance_type" {
   description = "EC2 instance type"
-  type        = string
   default     = "t3.medium"
 }
 
-variable "volume_size" {
-  description = "Root volume size in GB"
-  type        = number
-  default     = 20
-}
-
-variable "key_name" {
-  description = "SSH key pair name (must already exist in AWS)"
-  type        = string
-}
-
-variable "allowed_ssh_cidr" {
-  description = "CIDR block allowed to SSH into EC2 instance"
-  type        = string
-  default     = "0.0.0.0/0" # WARNING: Change this to your IP for security!
-}
-
-variable "allowed_airflow_cidr" {
-  description = "CIDR block allowed to access Airflow UI (port 8080)"
-  type        = string
-  default     = "0.0.0.0/0" # WARNING: Change this to your IP for security!
-}
-
-# ECR Configuration
+# ECR Repository Name
 variable "ecr_repository_name" {
-  description = "Name of the ECR repository"
-  type        = string
+  description = "Name of ECR repository for Airflow images"
   default     = "my-dags"
 }
 
-variable "ecr_image_tag_mutability" {
-  description = "Image tag mutability setting (MUTABLE or IMMUTABLE)"
-  type        = string
-  default     = "MUTABLE"
-}
-
-variable "ecr_scan_on_push" {
-  description = "Enable image scanning on push"
-  type        = bool
-  default     = true
-}
-
-variable "ecr_lifecycle_policy_count" {
-  description = "Number of images to keep in ECR (older images will be deleted)"
-  type        = number
-  default     = 10
-}
-
-# S3 Configuration
+# S3 Bucket (optional)
 variable "create_s3_bucket" {
-  description = "Whether to create S3 bucket for data assets (needed for produce_data_assets DAG)"
+  description = "Create S3 bucket for data assets? (needed for produce_data_assets DAG)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "s3_bucket_name" {
-  description = "Name of S3 bucket for data assets (must be globally unique, leave empty for auto-generated)"
-  type        = string
+  description = "S3 bucket name (only if create_s3_bucket = true)"
   default     = ""
-}
-
-# Tags
-variable "tags" {
-  description = "Additional tags to apply to all resources"
-  type        = map(string)
-  default     = {}
 }
