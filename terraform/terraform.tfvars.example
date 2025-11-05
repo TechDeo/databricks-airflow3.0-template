@@ -1,0 +1,38 @@
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "airflow"
+environment  = "dev"
+
+# EC2 Configuration
+instance_type = "t3.medium"  # Change to t3.large or t3.xlarge for production
+volume_size   = 20           # Root volume size in GB
+
+# REQUIRED: SSH Key Pair Name (must already exist in your AWS account)
+# Create one with: aws ec2 create-key-pair --key-name airflow-key --query 'KeyMaterial' --output text > airflow-key.pem
+key_name = "your-key-name"
+
+# Security Configuration
+# IMPORTANT: Replace 0.0.0.0/0 with your specific IP address for security!
+# Get your IP: curl https://checkip.amazonaws.com
+allowed_ssh_cidr     = "0.0.0.0/0"  # Example: "203.0.113.0/32" for single IP
+allowed_airflow_cidr = "0.0.0.0/0"  # Example: "203.0.113.0/24" for IP range
+
+# ECR Configuration
+ecr_repository_name         = "my-dags"
+ecr_image_tag_mutability    = "MUTABLE"    # or "IMMUTABLE"
+ecr_scan_on_push            = true
+ecr_lifecycle_policy_count  = 10           # Keep last 10 images
+
+# S3 Configuration
+# Set to false if you don't need S3 (only triggering Databricks jobs without data assets)
+create_s3_bucket = true
+s3_bucket_name   = ""  # Leave empty for auto-generated name, or specify: "data-platform-myname"
+
+# Additional Tags (optional)
+tags = {
+  Owner       = "YourName"
+  Team        = "DataEngineering"
+  CostCenter  = "Engineering"
+}
