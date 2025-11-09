@@ -1,63 +1,124 @@
-# Databricks and Airflow 3.0 Template
+# Databricks and Airflow 3.0 on EC2
 
 Supporting notes for Youtube tutorial: https://youtu.be/92X54U6gm0Y
 
-Implements a bare-bones data platform using Databricks as transformation tool, plus Airflow 3.0 for orchestration, deployed on EC2 using Docker Compose.
+Implements a data platform using Databricks for transformation and Airflow 3.0 for orchestration, deployed on EC2 with Docker Compose.
 
 ## Features
 
-- **Data Aware orchestration** using Airflow 3.0 Data Assets
-- **Declarative transformation** on top of Databricks notebooks
+- **Data-aware orchestration** using Airflow 3.0 Data Assets
+- **Declarative transformation** with Databricks notebooks
 - **Incremental upsert loading** using Delta Lake
-- **Docker Compose deployment** for simplicity and ease of management
+- **Docker Compose deployment** on EC2 for simplicity
 - **Data Quality checks** using DQX library
-- **CI/CD** using Github Actions
+- **CI/CD pipeline** with GitHub Actions
 - **AWS ECR** for container registry
-- **EC2 deployment** for production-ready orchestration
+- **Terraform** for infrastructure provisioning
 
 ## Why Docker Compose on EC2?
 
-This template has been simplified from the original Kubernetes setup to use Docker Compose on EC2 because:
-
 - **Simpler to deploy and manage** - No Kubernetes complexity
 - **Lower resource requirements** - Single EC2 instance
-- **Perfect for Databricks workloads** - Airflow just triggers Databricks jobs, doesn't run heavy processing
-- **Easier troubleshooting** - Direct container access
-- **Cost-effective** - Single instance vs cluster overhead
+- **Perfect for Databricks workloads** - Airflow triggers jobs, doesn't run heavy processing
+- **Cost-effective** - ~$30-60/month vs cluster overhead
 
-## Quick Start
+---
 
-### Prerequisites
+## Prerequisites
 
-1. **EC2 Instance** (t3.medium or larger recommended)
-2. **AWS ECR Repository** for storing Airflow images
-3. **Databricks Workspace** with job IDs to trigger
-4. **GitHub Secrets** configured for CI/CD:
-   - `AWS_ACCESS_KEY_ID`
-   - `AWS_SECRET_ACCESS_KEY`
-   - `AWS_SESSION_TOKEN` (if using temporary credentials)
-   - `ECR_REGISTRY`
+### AWS Resources
+- AWS Account with access to EC2, ECR, S3
+- AWS CLI configured (or use Terraform)
+- Databricks workspace with access token
+- GitHub repository for CI/CD
 
-### Installation
+### Local Tools
+- Terraform (if provisioning infrastructure)
+- Git
+- SSH client
 
-**Full documentation:** See [README-EC2.md](README-EC2.md) for complete setup instructions.
+---
 
-#### 1. Set up EC2 Instance
+## Quick Start (3 Options)
+
+### Option 1: Terraform (Automated)
 
 ```bash
-# SSH into your EC2 instance
-ssh -i your-key.pem ec2-user@your-ec2-ip
+# Clone repository
+git clone https://github.com/TechDeo/databricks-airflow3.0-template.git
+cd databricks-airflow3.0-template/terraform
 
-# Download and run setup script
+# Configure variables
+cp terraform.tfvars.example terraform.tfvars
+vim terraform.tfvars  # Update your values
+
+# Provision infrastructure
+terraform init
+terraform plan
+terraform apply
+
+# Note the outputs (EC2 IP, ECR registry, etc.)
+```
+
+### Option 2: Manual AWS Setup
+
+1. **Create ECR Repository**:
+   ```bash
+   aws ecr create-repository --repository-name my-dags --region us-east-1
+   ```
+
+2. **Create S3 Bucket**:
+   ```bash
+   aws s3 mb s3://data-platform-yourname --region us-east-1
+   ```
+
+3. **Create IAM Role** with policies:
+   - `AmazonEC2ContainerRegistryReadOnly`
+   - `AmazonS3FullAccess` (or scoped to your bucket)
+
+4. **Launch EC2 Instance** (t3.medium or larger):
+   - AMI: Amazon Linux 2023
+   - Attach IAM role from step 3
+   - Security Group: Allow ports 22 (SSH) and 8080 (Airflow)
+   - 20GB+ storage
+
+### Option 3: Use Existing EC2
+
+If you already have an EC2 instance, skip to the deployment steps below.
+
+---
+
+## Deployment
+
+### Step 1: Configure GitHub Secrets (for CI/CD)
+
+Go to GitHub repo → Settings → Secrets and variables → Actions
+
+Add these secrets:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_SESSION_TOKEN` (if using temporary credentials)
+- `ECR_REGISTRY` (format: `123456789012.dkr.ecr.us-east-1.amazonaws.com`)
+
+### Step 2: Setup EC2 Instance
+
+SSH into your EC2 instance:
+```bash
+ssh -i your-key.pem ec2-user@your-ec2-ip
+```
+
+Run setup script:
+```bash
 curl -O https://raw.githubusercontent.com/TechDeo/databricks-airflow3.0-template/ec2-docker-compose/setup_ec2_instance.sh
 chmod +x setup_ec2_instance.sh
 ./setup_ec2_instance.sh
 
-# Log out and back in for changes to take effect
+# Log out and back in for docker group changes
 exit
+ssh -i your-key.pem ec2-user@your-ec2-ip
 ```
 
-#### 2. Clone and Configure
+### Step 3: Clone and Configure
 
 ```bash
 # Clone repository
@@ -66,27 +127,65 @@ cd airflow
 
 # Configure environment
 cp .env.example .env
-vim .env  # Update ECR_REGISTRY, IMAGE_TAG, AWS region, Databricks settings
+vim .env
+```
 
-# Login to ECR
+Update these key values in `.env`:
+```bash
+# ECR Configuration
+ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com
+ECR_REPO=my-dags
+IMAGE_TAG=20251030140337  # Use latest tag from ECR
+
+# AWS
+AWS_DEFAULT_REGION=us-east-1
+
+# Airflow Admin (CHANGE PASSWORD!)
+_AIRFLOW_WWW_USER_PASSWORD=your-secure-password
+
+# S3
+S3_BUCKET=data-platform-yourname
+
+# Databricks (optional - can configure in UI instead)
+# AIRFLOW_CONN_DATABRICKS_CONN=databricks://token:dapi123@workspace.cloud.databricks.com?port=443&ssl=true
+```
+
+### Step 4: Login to ECR
+
+```bash
 aws ecr get-login-password --region us-east-1 | \
   docker login --username AWS --password-stdin $ECR_REGISTRY
 ```
 
-#### 3. Start Airflow
+### Step 5: Start Airflow
 
 ```bash
-# Make management script executable
 chmod +x manage_docker_compose.sh
-
-# Start all services
 ./manage_docker_compose.sh start
-
-# Access Airflow UI at http://your-ec2-ip:8080
-# Default credentials: admin/admin
 ```
 
+Wait 30-60 seconds, then access:
+- **Airflow UI**: `http://your-ec2-ip:8080`
+- **Username**: `admin`
+- **Password**: (as set in `.env`)
+
+### Step 6: Configure Databricks Connection
+
+**In Airflow UI**: Admin → Connections → Add Connection
+
+- Connection Id: `databricks_conn`
+- Connection Type: `Databricks`
+- Host: `your-workspace.cloud.databricks.com`
+- Login: `token`
+- Password: `your-databricks-token`
+- Port: `443`
+- Extra: `{"use_ssl": true}`
+
+---
+
 ## Management Commands
+
+Use the `manage_docker_compose.sh` script for easy management:
 
 ```bash
 # Start services
@@ -100,96 +199,68 @@ chmod +x manage_docker_compose.sh
 
 # View logs
 ./manage_docker_compose.sh logs
+./manage_docker_compose.sh logs scheduler  # Specific service
 
-# View specific service logs
-./manage_docker_compose.sh logs scheduler
-
-# Open shell in container
+# Open shell
 ./manage_docker_compose.sh shell
 
-# Update deployment
+# Pull latest image from ECR
+./manage_docker_compose.sh pull
+
+# Update code and restart
 ./manage_docker_compose.sh update
+
+# Clean all data (WARNING: deletes everything)
+./manage_docker_compose.sh clean
 ```
 
-## Architecture
+---
 
-![architecture.png](architecture.png)
+## DAG Configuration
 
-### Components
+### Included DAGs
 
-- **EC2 Instance**: Hosts all Airflow services
-- **Docker Compose**: Orchestrates containers
-- **PostgreSQL**: Airflow metadata database
-- **Airflow Services**:
-  - Webserver (UI on port 8080)
-  - Scheduler (triggers DAGs)
-  - Triggerer (handles deferred tasks)
-- **AWS ECR**: Container image registry
-- **Databricks**: Data transformation platform
+1. **example_dag.py** - Simple test workflow
+2. **produce_data_assets.py** - Downloads data to S3
+3. **trigger_databricks_workflow_dag.py** - Triggers Databricks jobs
 
-### Data Flow
+### Update with Your Databricks Job IDs
 
-```
-GitHub → CI/CD → ECR → EC2 Docker Compose → Airflow → Databricks Jobs
-                                              ↓
-                                        S3 Data Assets
-```
-
-## DAGs Included
-
-### 1. `example_dag.py`
-Simple hello/goodbye workflow for testing Airflow setup.
-
-### 2. `produce_data_assets.py`
-Downloads StackExchange data and uploads to S3 as data assets.
-- Schedule: Daily
-- Creates assets that trigger downstream workflows
-
-### 3. `trigger_databricks_workflow_dag.py`
-Triggers Databricks jobs based on data assets or schedule.
-- Supports asset-based triggering (data-driven)
-- Supports time-based scheduling (cron)
-- Multiple workflow patterns included as examples
-
-## Configuration
-
-### Databricks Connection
-
-Configure in Airflow UI (Admin → Connections):
-- **Connection Id**: `databricks_conn`
-- **Connection Type**: `Databricks`
-- **Host**: `your-workspace.cloud.databricks.com`
-- **Login**: `token`
-- **Password**: `your-databricks-token`
-
-Or set via environment variable in `.env`:
+Edit the DAG file:
 ```bash
-AIRFLOW_CONN_DATABRICKS_CONN=databricks://token:your_token@your_workspace.cloud.databricks.com?port=443&ssl=true
+vim dags/trigger_databricks_workflow_dag.py
 ```
 
-### Update Job IDs
-
-Edit `dags/trigger_databricks_workflow_dag.py` with your Databricks job IDs:
+Update job IDs:
 ```python
-job_id = 1054308664529427  # Replace with your job ID
+job_id = 1054308664529427  # Replace with your Databricks job ID
 ```
+
+Restart scheduler:
+```bash
+docker-compose restart airflow-scheduler
+```
+
+---
 
 ## CI/CD Pipeline
 
-The GitHub Actions workflow automatically:
-1. Builds Docker image on push to `ec2-docker-compose` branch
-2. Tags with date (YYYYMMDD format)
-3. Pushes to AWS ECR
+When you push to `ec2-docker-compose` branch:
+1. GitHub Actions builds Docker image
+2. Image is tagged with date (YYYYMMDD format)
+3. Image is pushed to ECR
 
 To deploy updates:
 ```bash
-# Update IMAGE_TAG in .env with latest tag
+# Update IMAGE_TAG in .env with new date tag
 vim .env
 
 # Pull and restart
 ./manage_docker_compose.sh pull
 docker-compose up -d
 ```
+
+---
 
 ## Troubleshooting
 
@@ -206,58 +277,110 @@ free -h
 docker-compose logs -f
 ```
 
+### Can't pull from ECR
+```bash
+# Re-authenticate
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin $ECR_REGISTRY
+
+# Verify IAM permissions
+aws ecr describe-repositories
+```
+
 ### Can't connect to Databricks
 ```bash
 # Test connection from container
 docker-compose exec airflow-webserver bash
-airflow connections test databricks_conn
+python -c "from airflow.providers.databricks.hooks.databricks import DatabricksHook; hook = DatabricksHook('databricks_conn'); print(hook.test_connection())"
 ```
 
 ### DAGs not appearing
 ```bash
+# Check DAG folder
+ls -la dags/
+
 # Restart scheduler
 docker-compose restart airflow-scheduler
 
 # Check logs
-docker-compose logs scheduler
+docker-compose logs scheduler | grep -i error
 ```
+
+---
 
 ## Production Recommendations
 
-For production deployment, consider:
+### Security
+- Change default admin password
+- Use AWS Secrets Manager for credentials
+- Restrict security group to specific IPs
+- Enable HTTPS via ALB or nginx
+- Use VPN or bastion host for SSH
 
-1. **Security**:
-   - Change default admin password
-   - Use AWS Secrets Manager for credentials
-   - Restrict security group to specific IPs
-   - Enable HTTPS via ALB or nginx
+### Reliability
+- Use RDS for PostgreSQL (instead of containerized DB)
+- Enable automated backups
+- Set up CloudWatch monitoring
+- Configure SNS alerts for failures
+- Enable remote logging to S3
 
-2. **Reliability**:
-   - Use RDS for PostgreSQL (instead of containerized)
-   - Enable automated backups
-   - Set up CloudWatch monitoring
-   - Configure SNS alerts for failures
+### Cost Optimization
+- Use Spot Instances for dev/test (90% savings)
+- Right-size EC2 based on usage
+- Set up ECR lifecycle policies
+- Clean up old logs regularly
+- Schedule instance start/stop for dev environments
 
-3. **Scaling**:
-   - Right-size EC2 instance based on workload
-   - Consider CeleryExecutor with workers for high concurrency
-   - Use remote logging to S3
+---
 
-4. **Cost Optimization**:
-   - Use Spot Instances for dev/test
-   - Clean up old logs regularly
-   - Set ECR lifecycle policies
+## Architecture
+
+```
+GitHub (code) → CI/CD → AWS ECR (images)
+                           ↓
+                     EC2 Instance
+                           ↓
+               Docker Compose (Airflow)
+                 ↓           ↓
+            PostgreSQL   Databricks Jobs
+                           ↓
+                      S3 Data Assets
+```
+
+### Components
+- **EC2**: Hosts Docker Compose
+- **Docker Compose**: Orchestrates containers (webserver, scheduler, triggerer, dag-processor, PostgreSQL)
+- **ECR**: Container image registry
+- **Databricks**: Data transformation platform
+- **S3**: Data storage
+
+---
+
+## File Structure
+
+```
+.
+├── dags/                      # Airflow DAG files
+├── terraform/                 # Infrastructure as code
+├── cicd/Dockerfile           # Airflow image
+├── docker-compose.yaml       # Container orchestration
+├── manage_docker_compose.sh  # Management script
+├── setup_ec2_instance.sh     # One-time EC2 setup
+├── .env.example              # Environment template
+└── README.md                 # This file
+```
+
+---
 
 ## Support
 
-For detailed instructions, see [README-EC2.md](README-EC2.md).
+- **Airflow Docs**: https://airflow.apache.org/docs/
+- **Databricks Provider**: https://airflow.apache.org/docs/apache-airflow-providers-databricks/
+- **Docker Compose**: https://docs.docker.com/compose/
+- **GitHub Issues**: Open an issue for bugs or questions
 
-For issues or questions, open an issue on GitHub.
+---
 
-## Disclaimer
+## License
 
-This is educational code to demonstrate deploying a data platform with Airflow and Databricks. While suitable for development and small production workloads, consider additional hardening for large-scale production use.
-
-## Original Kubernetes Version
-
-The original Kubernetes/Kind setup is available on the `main` branch. The EC2 Docker Compose version (this branch) provides a simpler alternative for most use cases.
+This is educational code for demonstration purposes. While suitable for development and small production workloads, consider additional hardening for large-scale production use.

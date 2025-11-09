@@ -50,3 +50,19 @@ logs/
 *.tmp
 .cache/
 tmp
+
+# AWS & Terraform Sensitive Files
+*.tfvars
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+terraform.tfstate.d/
+credentials
+config
+
+# Sensitive Data
+*secret*
+*password*
+*token*
+!.env.example
