@@ -16,18 +16,17 @@ EC2_IP="${EC2_IP:-3.80.41.115}"
 SSH_KEY="${SSH_KEY:-/Users/adeola.oladeji/Code/Learning/databricks-airflow3.0-template/airflow-key.pem}"
 ECR_REGISTRY="${ECR_REGISTRY:-223340170015.dkr.ecr.us-east-1.amazonaws.com}"
 ECR_REPO="${ECR_REPO:-my-dags}"
-IMAGE_TAG="${IMAGE_TAG:-20251109}"
+IMAGE_TAG="${IMAGE_TAG:-20251111114508}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 S3_BUCKET="${S3_BUCKET:-data-platform-adeola}"
 DATABRICKS_HOST="${DATABRICKS_HOST:-}"
 DATABRICKS_TOKEN="${DATABRICKS_TOKEN:-}"
 
-# Check required variables
+# Check Databricks variables (warn if not set)
 if [ -z "$DATABRICKS_HOST" ] || [ -z "$DATABRICKS_TOKEN" ]; then
-    echo -e "${RED}ERROR: DATABRICKS_HOST and DATABRICKS_TOKEN environment variables must be set${NC}"
-    echo "Example: export DATABRICKS_HOST=your-workspace.cloud.databricks.com"
-    echo "         export DATABRICKS_TOKEN=dapi..."
-    exit 1
+    echo -e "${YELLOW}WARNING: DATABRICKS_HOST and DATABRICKS_TOKEN not set${NC}"
+    echo -e "${YELLOW}You can configure Databricks connection later in Airflow UI${NC}"
+    echo ""
 fi
 
 echo -e "${GREEN}========================================${NC}"
