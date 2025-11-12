@@ -1,3 +1,16 @@
+# Environment Configuration
+variable "environment" {
+  description = "Environment name (dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
+variable "project_name" {
+  description = "Project name used for resource naming"
+  type        = string
+  default     = "airflow"
+}
+
 # AWS Region
 variable "aws_region" {
   description = "AWS region"
@@ -38,4 +51,49 @@ variable "create_s3_bucket" {
 variable "s3_bucket_name" {
   description = "S3 bucket name (only if create_s3_bucket = true)"
   default     = ""
+}
+
+# Secrets Manager Configuration
+variable "create_secrets" {
+  description = "Create AWS Secrets Manager secrets for sensitive data"
+  type        = bool
+  default     = true
+}
+
+variable "databricks_host" {
+  description = "Databricks workspace URL (optional, can be set in Secrets Manager)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "databricks_token" {
+  description = "Databricks access token (optional, can be set in Secrets Manager)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "airflow_admin_password" {
+  description = "Airflow admin password (optional, can be set in Secrets Manager)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "postgres_password" {
+  description = "PostgreSQL password (optional, can be set in Secrets Manager)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+# Common Tags
+variable "common_tags" {
+  description = "Common tags to apply to all resources"
+  type        = map(string)
+  default = {
+    Project   = "airflow"
+    ManagedBy = "terraform"
+  }
 }
